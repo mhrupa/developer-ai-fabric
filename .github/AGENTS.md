@@ -4,43 +4,43 @@ This repository is the source of truth for Developer AI Fabric. Codex should use
 
 ## Vision
 
-Developer AI Fabric is an internal AI engineering platform that combines GitHub Copilot, team agents, local LLMs, engineering knowledge, and developer workflows into one controlled engineering layer.
+Developer AI Fabric is a local-first AI engineering platform that lets developers run repo-local agent decks through a local service and UI while sharing organizational knowledge through a remote KB.
 
-The target outcome is to move from AI-assisted coding to AI-assisted software engineering.
+The target outcome is to move from isolated AI coding assistance to evidence-backed AI software engineering workflows.
 
-## Approved Stack
+## Current Product Direction
 
-- Java 21
-- Spring Boot 3.x
-- Spring AI
-- Ollama
-- Qdrant
-- MySQL
-- Maven
-- CLI first
-- VS Code extension after MVP
+The platform should provide:
+
+- local orchestration service
+- repo-local `.agent-deck`
+- local web UI
+- future VS Code extension
+- remote shared KB
+- MCP integrations for Jira, GitHub, AWS CloudWatch, wiki, and related systems
+- LLM gateway for AWS Bedrock, local LLMs, and other approved providers
 
 ## Source Documents
 
 Read these before implementation:
 
+- `README.md`
+- `docs/product/PROJECT_CONTEXT.md`
 - `docs/architecture/ARCHITECTURE.md`
 - `docs/architecture/DECISIONS.md`
-- `docs/product/PROJECT_CONTEXT.md`
 - `docs/product/ROADMAP.md`
+- `docs/product/UI_ORCHESTRATION.md`
 - `docs/development/DEVELOPMENT_SEQUENCE.md`
 - `docs/development/AGENT_SPECIFICATION.md`
 - `docs/development/CODEX_TASK_001.md`
 
-## Repository Structure
+## Expected Repository Structure
 
-- `gateway/` - Spring Boot AI Gateway
-- `agents/` - agent metadata, prompts, and policies
-- `model-router/` - model selection and routing policies
-- `context-engine/` - ingestion, embeddings, retrieval, and Qdrant integration
-- `integrations/` - GitHub, Jira, Confluence, SonarQube, Azure DevOps connectors
-- `cli/` - developer command line interface
-- `vscode-extension/` - VS Code integration after MVP
+- `.agent-deck/` - sample local agent deck metadata and workflows
+- `service/` - local Developer AI Fabric service
+- `ui/` - local web UI
+- `cli/` - optional CLI wrapper
+- `vscode-extension/` - VS Code integration after local UI is stable
 - `docs/` - product, architecture, and development knowledge
 
 ## Development Principles
@@ -48,88 +48,56 @@ Read these before implementation:
 - Build in phases.
 - Prefer vertical slices over isolated layers.
 - Keep the repo runnable after every phase.
-- Keep modules loosely coupled.
-- Use clear interfaces between gateway, agents, model router, context engine, persistence, and integrations.
-- Use constructor injection.
-- Keep controllers thin and business logic in services.
+- Keep external integrations behind interfaces.
+- Keep UI calls routed through the local service.
+- Keep model calls behind an LLM gateway.
+- Keep MCP access explicit and auditable.
 - Use structured request and response DTOs.
-- Use environment-based configuration.
-- Add tests with each meaningful capability.
+- Persist local run state.
+- Include evidence, confidence, and open questions in RCA output.
+- Require human approval for Jira posting, PR creation, rollback, or config changes.
 - Update documentation when architecture or usage changes.
 - Record major decisions in `docs/architecture/DECISIONS.md`.
 
 ## Core Platform Components
 
-### AI Gateway
+### Local Service
 
-Receives developer requests, validates input, resolves commands, invokes agents, returns structured responses, and records execution data.
+The local service loads the agent deck, exposes APIs, runs workflows, streams events, persists local run history, calls MCP integrations, queries the remote KB, and coordinates model usage.
 
-Initial APIs:
+### Agent Deck Runtime
 
-- health check
-- list agents
-- execute command
+The runtime reads `.agent-deck/agents`, `.agent-deck/workflows`, MCP config, service config, and permissions. It executes workflows step by step and records each agent result.
 
-### Agent Registry
+### Local UI
 
-Maintains approved agents, command mappings, required tools, model policy, and output contracts.
+The UI displays available agents, workflows, RCA runs, evidence, KB search, and approvals. The UI should call the local service only.
 
-Initial agents:
+### Remote KB
 
-- Service Explain Agent
-- PR Review Agent
-- Incident Helper Agent
-- ADR Agent
-- Test Plan Agent
+The remote KB stores shared engineering memory, including runbooks, wiki pages, past incidents, RCA reports, service registry data, and semantic embeddings.
 
-### Model Router
+### LLM Gateway
 
-Selects the model runtime based on agent policy, request type, sensitivity, and availability. The first runtime is Ollama through Spring AI.
-
-### Context Engine
-
-Indexes and retrieves engineering knowledge from architecture docs, ADRs, migration playbooks, runbooks, coding standards, incidents, READMEs, and project documentation.
-
-### Persistence
-
-MySQL stores users, projects, agents, executions, execution steps, usage metrics, feedback, routing policies, and knowledge sources.
-
-Qdrant stores document embeddings and project knowledge vectors.
+The gateway routes tasks to AWS Bedrock, local LLMs, or other approved providers based on task type, sensitivity, cost, and availability.
 
 ## Phased Development
 
 Follow `docs/development/DEVELOPMENT_SEQUENCE.md`.
 
-Current priority is Phase 1: Spring Boot gateway vertical slice.
+Current priority is Phase 1: local service vertical slice.
 
 Phase 1 must deliver:
 
-- Spring Boot project under `gateway/`
-- Java 21 Maven setup
+- local service project
 - health endpoint
 - agents endpoint
-- execute endpoint
-- agent interface
-- simple agent registry
-- model router abstraction
-- Ollama integration through Spring AI
-- Service Explain Agent
-- basic tests
-
-## Agent Response Contract
-
-Each agent response should include:
-
-- agent id
-- agent name
-- model used
-- execution status
-- structured result
-- evidence when available
-- recommendations
-- follow-up actions
-
-Normalize model output before returning API responses.
+- workflows endpoint
+- runs endpoint
+- sample `.agent-deck`
+- mocked RCA workflow runner
+- local run history
+- basic local UI
 
 ## Codex Execution Rules
 
@@ -145,4 +113,4 @@ Normalize model output before returning API responses.
 
 ## Current Next Task
 
-Start with `docs/development/CODEX_TASK_001.md` and implement the first working Spring Boot gateway vertical slice.
+Start with `docs/development/CODEX_TASK_001.md` and implement the first local Developer AI Fabric vertical slice.

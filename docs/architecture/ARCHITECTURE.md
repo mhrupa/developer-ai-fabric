@@ -3,49 +3,217 @@
 ## High-Level Architecture
 
 ```text
-Developer
-  ↓
-CLI / VS Code Extension
-  ↓
-AI Gateway
-  ↓
-Agent Registry + Model Router + Context Engine
-  ↓
-Spring AI + Ollama + Qdrant + MySQL
-  ↓
-GitHub / Jira / Confluence / SonarQube / Azure DevOps
+Browser UI / VS Code Extension / CLI
+        |
+Local Developer AI Fabric Service
+        |
+Agent Deck Runtime
+        |
+Workflow Runner
+        |
+Agents
+  - Bug Intake
+  - Service Resolver
+  - KB Retriever
+  - Evidence Collector
+  - Log Analyzer
+  - Code Analyzer
+  - RCA Writer
+  - Reviewer
+        |
+MCP Client Layer + KB Client + LLM Gateway
+        |
+Jira / AWS CloudWatch / GitHub / Wiki / Remote KB / Bedrock / Local LLM
 ```
 
-## Core Components
+## Deployment Model
 
-### AI Gateway
+Developer AI Fabric uses a hybrid deployment model.
 
-Receives developer requests, validates input, resolves command intent, invokes the agent runtime, and returns structured responses.
+Local execution:
 
-### Agent Registry
+- local service
+- agent orchestration
+- repository analysis
+- local run history
+- local UI
+- future VS Code webview
 
-Maintains approved team agents, command mappings, model policies, required tools, and output contracts.
+Remote shared platform:
 
-### Model Router
+- KB API
+- vector database
+- metadata database
+- object storage
+- document indexing jobs
+- service registry
+- audit events
 
-Selects the correct model runtime based on request type, sensitivity, project policy, and fallback rules.
+This keeps execution close to the developer and codebase while preserving shared team memory.
 
-### Context Engine
+## Local Service
 
-Retrieves project-specific engineering context from documentation, code summaries, architecture decisions, incidents, and standards.
+The local service is the main runtime installed with the agent deck.
 
-### Agent Runtime
+Responsibilities:
 
-Executes agent workflows using Spring Boot and Spring AI. MVP should avoid heavy orchestration frameworks.
+- expose REST and event streaming APIs
+- load `.agent-deck` from the current repository
+- list agents and workflows
+- execute workflows step by step
+- persist local run state
+- call MCP servers
+- query the remote KB API
+- route LLM requests
+- produce structured reports
+- support manual approval actions
 
-### Persistence Layer
+Suggested local APIs:
 
-MySQL stores users, projects, agent metadata, execution history, usage metrics, and feedback.
+```http
+GET /api/v1/health
+GET /api/v1/agents
+GET /api/v1/workflows
+POST /api/v1/runs
+GET /api/v1/runs/{runId}
+GET /api/v1/runs/{runId}/events
+POST /api/v1/runs/{runId}/steps/{stepId}/rerun
+POST /api/v1/runs/{runId}/approve
+POST /api/v1/runs/{runId}/post-to-jira
+```
 
-### Vector Layer
+## Local UI
 
-Qdrant stores embeddings for architecture documents, ADRs, runbooks, coding standards, incidents, and project documentation.
+The UI is the local orchestration control plane.
+
+Primary screens:
+
+- dashboard
+- agent catalog
+- workflow orchestration view
+- RCA run page
+- evidence viewer
+- KB search
+- settings
+
+The UI should call only the local service. It should not call Jira, AWS, GitHub, or the vector database directly.
+
+## Agent Deck Layout
+
+Each enabled repository should contain or receive an agent deck.
+
+```text
+.agent-deck/
+  agents/
+    bug-intake.agent.yaml
+    service-resolver.agent.yaml
+    kb-retriever.agent.yaml
+    evidence-collector.agent.yaml
+    log-analyzer.agent.yaml
+    code-analyzer.agent.yaml
+    rca-writer.agent.yaml
+    reviewer.agent.yaml
+
+  workflows/
+    rca-analysis.workflow.yaml
+    fix-suggestion.workflow.yaml
+
+  mcp/
+    jira.yaml
+    github.yaml
+    aws-cloudwatch.yaml
+
+  config/
+    service.yaml
+    permissions.yaml
+```
+
+## Remote KB Platform
+
+The remote KB platform is the shared memory layer.
+
+```text
+Local Service
+  |
+KB API
+  |
+Metadata DB + Vector DB + Object Store
+```
+
+Recommended responsibilities:
+
+- index wiki pages, runbooks, Jira summaries, RCA reports, and service docs
+- provide semantic search
+- store final RCA reports
+- store service ownership and environment metadata
+- track audit events
+- expose policy-aware APIs to local clients
+
+Suggested APIs:
+
+```http
+GET /services/{serviceName}
+GET /jira/{issueKey}/context
+POST /search/similar-bugs
+POST /search/runbooks
+POST /rca-reports
+GET /rca-reports/{issueKey}
+POST /audit/events
+```
+
+## LLM Gateway
+
+Agents should not call a model provider directly. They should call an LLM gateway abstraction.
+
+Model routing examples:
+
+```yaml
+tasks:
+  jira_summary:
+    provider: bedrock
+    model_class: fast
+  log_clustering:
+    provider: local
+    model_class: small
+  rca_reasoning:
+    provider: bedrock
+    model_class: strong
+  pii_redaction:
+    provider: local
+    model_class: small
+  code_patch_suggestion:
+    provider: bedrock
+    model_class: strong
+```
+
+Bedrock is the preferred production reasoning path. Local LLMs can be used for lower-risk classification, summarization, redaction, and offline developer workflows.
+
+## Run State
+
+Local run state should survive UI refreshes.
+
+```text
+~/.developer-ai-fabric/runs/
+  BUG-1234-run-001.json
+```
+
+Remote storage should keep shared artifacts:
+
+- final RCA report
+- evidence summary
+- similar issue references
+- audit metadata
+
+## Security Model
+
+- authenticate local service access
+- authenticate remote KB access using SSO or approved tokens
+- enforce KB authorization server-side
+- scope AWS access through approved MCP configuration
+- redact secrets and PII before model calls
+- audit KB reads and RCA writes
+- require manual approval before Jira posting, PR creation, rollback, or config changes
 
 ## MVP Boundary
 
-The MVP should be a modular monolith with package-level separation. Microservice decomposition should be considered only after core workflows stabilize.
+The MVP is a local modular application plus remote KB client. It should avoid unattended central orchestration and production-changing automation until RCA quality, permissions, and auditing are proven.

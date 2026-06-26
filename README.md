@@ -1,60 +1,99 @@
 # Developer AI Fabric
 
-Developer AI Fabric is an internal AI engineering platform for combining team agents, local LLMs, engineering knowledge, and developer tooling into a unified developer experience.
+Developer AI Fabric is a local-first AI engineering platform for running certified agent decks against real engineering work such as Jira bugs, incidents, service analysis, and fix planning.
 
-## Vision
+The platform combines:
 
-Move the team from AI-assisted coding to AI-assisted software engineering.
+- repo-local agent decks
+- a local orchestration service
+- a local web UI and future VS Code extension
+- MCP integrations for Jira, GitHub, AWS, wiki, and other tools
+- a remote shared knowledge base for team memory
+- model routing across AWS Bedrock, local LLMs, and other approved providers
 
-The platform provides a common layer around:
+## Target Workflow
 
-- GitHub Copilot usage
-- Team-certified agents
-- Local LLMs using Ollama
-- Organizational engineering memory
-- Project context and standards
-- GitHub/Jira/Confluence/Sonar integrations
-- CLI and VS Code developer workflows
-
-## MVP Stack
-
-- Java 21
-- Spring Boot 3.x
-- Spring AI
-- Ollama
-- Qdrant
-- MySQL
-- CLI first
-- VS Code extension later
-
-## MVP Commands
-
-```bash
-fabric execute --command /explain-service --project OMS --repo ./oms-v2
-fabric execute --command /review-pr --project OMS --pr 123
-fabric execute --command /incident --project OMS --input error.log
+```text
+Developer opens a service repo
+  |
+Developer runs the local Developer AI Fabric service
+  |
+Local UI displays available agents and workflows
+  |
+Developer starts RCA for a Jira bug
+  |
+Local orchestration runs the repo agent deck
+  |
+Agents gather Jira, CloudWatch, GitHub, wiki, KB, and local repo context
+  |
+System produces evidence-backed RCA, mitigation, and optional fix plan
+  |
+Developer reviews and optionally posts the result to Jira
 ```
 
-## First MVP Scope
+## Architecture Summary
 
-- AI Gateway
-- Agent Registry
-- Model Router
-- Ollama Client
-- Basic Agent Runtime
-- MySQL persistence
-- Service Explain Agent
-- CLI
+```text
+Browser UI / VS Code / CLI
+        |
+Local Developer AI Fabric Service
+        |
+Agent Deck Runtime
+        |
+Agents + Workflows
+        |
+MCP Servers + Remote KB API + LLM Gateway
+        |
+Jira / AWS CloudWatch / GitHub / Wiki / Vector DB / Bedrock / Local LLM
+```
 
-## Codex Usage
+## Local Responsibilities
 
-Codex should first read:
+- load the agent deck from the current repository
+- display agents and workflows in a UI
+- orchestrate agent workflow execution
+- read local repository files
+- run local commands, tests, and static analysis where allowed
+- call MCP servers for Jira, GitHub, AWS, and other systems
+- query the remote shared KB
+- produce RCA reports, mitigation plans, and fix suggestions
 
-- `AGENTS.md`
-- `PROJECT_CONTEXT.md`
-- `ARCHITECTURE.md`
-- `ROADMAP.md`
-- `DECISIONS.md`
-- `docs/codex-task-001.md`
+## Remote Responsibilities
 
-Implementation must follow the decisions and boundaries documented in this repository.
+- shared knowledge base
+- vector search over incidents, runbooks, wiki pages, and RCA reports
+- service registry and ownership metadata
+- final RCA report storage
+- audit events
+- centralized document indexing
+- optional model and prompt policy registry
+
+## MVP Scope
+
+The first MVP should deliver:
+
+- local service
+- agent deck loader
+- workflow runner
+- local web UI
+- Jira bug RCA workflow
+- remote KB search client
+- MCP integration points for Jira, AWS CloudWatch, and GitHub
+- evidence-backed RCA report generation
+- local run history
+- optional manual posting to Jira
+
+Do not start with automatic production fixes, rollbacks, or unattended central orchestration.
+
+## Documentation
+
+Start with:
+
+- `docs/product/PROJECT_CONTEXT.md`
+- `docs/architecture/ARCHITECTURE.md`
+- `docs/architecture/DECISIONS.md`
+- `docs/product/ROADMAP.md`
+- `docs/product/UI_ORCHESTRATION.md`
+- `docs/development/AGENT_SPECIFICATION.md`
+- `docs/development/DEVELOPMENT_SEQUENCE.md`
+- `docs/development/CODEX_TASK_001.md`

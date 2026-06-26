@@ -1,48 +1,83 @@
-# Codex Task 001 - Bootstrap Developer AI Fabric Gateway
+# Codex Task 001 - Bootstrap Local Developer AI Fabric Service
 
 ## Goal
 
-Create the first working vertical slice of Developer AI Fabric.
+Create the first working vertical slice of the local Developer AI Fabric service.
 
-## Stack
-
-- Java 21
-- Spring Boot 3.x
-- Maven
-- Spring AI
-- Ollama
-- MySQL later
-- Qdrant later
+The result should prove that a repository-local agent deck can be loaded, displayed, and orchestrated through a local API and basic UI.
 
 ## Implement
 
-1. Create Spring Boot gateway project under `gateway/`
-2. Add `/api/v1/health`
-3. Add `/api/v1/agents`
-4. Add `/api/v1/execute`
-5. Create agent interface
-6. Create in-memory or YAML-backed agent registry
-7. Create model router abstraction
-8. Integrate Ollama through Spring AI
-9. Implement Service Explain Agent
-10. Add basic tests
+1. Create the local service project.
+2. Add `/api/v1/health`.
+3. Add `/api/v1/agents`.
+4. Add `/api/v1/workflows`.
+5. Add `/api/v1/runs`.
+6. Load agent metadata from `.agent-deck/agents`.
+7. Load workflow metadata from `.agent-deck/workflows`.
+8. Implement a simple workflow runner using mocked agent execution.
+9. Persist local run history under `~/.developer-ai-fabric/runs`.
+10. Add a basic local UI with:
+    - dashboard
+    - agent catalog
+    - workflow list
+    - run detail page
+11. Add tests for agent loading, workflow loading, and run creation.
 
 ## Constraints
 
-- Do not add LangGraph
-- Do not add Python services
-- Do not add VS Code extension yet
-- Do not add Jira, Confluence, or Sonar integration yet
-- Keep the implementation modular
-- Use environment variables for model configuration
+- Do not implement central unattended orchestration.
+- Do not implement automatic production actions.
+- Do not post to Jira without explicit approval.
+- Do not call AWS, Jira, or GitHub directly from the UI.
+- Keep external integrations behind service interfaces.
+- Keep model provider access behind an LLM gateway abstraction.
+- Use local mock agents for the first vertical slice.
 
-## Expected Test Request
+## Sample Agent Metadata
+
+```yaml
+id: bug-intake
+name: Bug Intake Agent
+description: Extracts structured RCA input from a Jira bug
+version: 1.0.0
+tools:
+  - jira-mcp
+outputs:
+  - issueSummary
+  - severity
+  - serviceHints
+  - timeWindow
+```
+
+## Sample Workflow Metadata
+
+```yaml
+id: rca-analysis
+name: RCA Analysis
+description: Produces an evidence-backed RCA report for a Jira bug
+steps:
+  - id: bug-intake
+    agent: bug-intake
+  - id: service-resolver
+    agent: service-resolver
+  - id: kb-retriever
+    agent: kb-retriever
+  - id: rca-writer
+    agent: rca-writer
+```
+
+## Expected Run Request
 
 ```json
 {
-  "command": "/explain-service",
-  "project": "OMS",
-  "input": "Spring Boot inventory service using MySQL and REST APIs"
+  "workflow": "rca-analysis",
+  "input": {
+    "jiraIssueKey": "BUG-1234",
+    "service": "payment-api",
+    "environment": "prod",
+    "timeWindowHours": 4
+  }
 }
 ```
 
@@ -50,13 +85,23 @@ Create the first working vertical slice of Developer AI Fabric.
 
 ```json
 {
-  "agent": "service-explain",
-  "model": "ollama",
+  "runId": "BUG-1234-run-001",
+  "workflow": "rca-analysis",
+  "status": "completed",
+  "steps": [
+    {
+      "id": "bug-intake",
+      "agent": "bug-intake",
+      "status": "completed"
+    }
+  ],
   "result": {
-    "overview": "...",
-    "dependencies": [],
-    "apis": [],
-    "risks": []
+    "summary": "Mock RCA summary",
+    "confidence": "low",
+    "evidence": [],
+    "openQuestions": [
+      "Real Jira, KB, CloudWatch, and repo integrations are not enabled yet."
+    ]
   }
 }
 ```
