@@ -1,0 +1,18 @@
+id: evidence-collector
+name: Evidence Collector Agent
+description: Collects evidence from Jira, CloudWatch, GitHub, wiki, and local repository context.
+version: 1.0.0
+modelPolicy:
+  defaultTask: evidence_collection
+  allowLocal: true
+  allowCloud: true
+tools:
+  - jira-mcp
+  - aws-cloudwatch-mcp
+  - github-mcp
+  - repository-reader
+outputs:
+  - jiraEvidence
+  - cloudWatchEvidence
+  - githubEvidence
+  - repoEvidence

@@ -1,0 +1,16 @@
+id: service-resolver
+name: Service Resolver Agent
+description: Maps a Jira issue to service ownership, repository, environment, and log context.
+version: 1.0.0
+modelPolicy:
+  defaultTask: service_resolution
+  allowLocal: true
+  allowCloud: true
+tools:
+  - service-registry
+  - repo-config
+outputs:
+  - service
+  - repository
+  - owners
+  - logGroups

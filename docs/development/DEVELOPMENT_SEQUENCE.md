@@ -7,27 +7,28 @@
 3. Agent deck file loader
 4. Agent catalog API
 5. Workflow catalog API
-6. Local run state persistence
-7. Workflow runner with mocked agents
-8. Run events stream
-9. Local UI dashboard
-10. Agent catalog UI
-11. Workflow orchestration UI
-12. RCA run page
-13. Remote KB client interface
-14. Jira MCP integration
-15. Bug Intake Agent
-16. Service Resolver Agent
-17. KB Retriever Agent
-18. CloudWatch MCP integration
-19. GitHub/Git integration
-20. Evidence Collector Agent
-21. Log Analyzer Agent
-22. Code Analyzer Agent
-23. RCA Writer Agent
-24. Reviewer Agent
-25. Manual Jira posting approval
-26. VS Code extension wrapper
+6. Local orchestration engine abstraction
+7. Local run state persistence
+8. Workflow runner with mocked agents
+9. Run events stream
+10. Local UI dashboard
+11. Agent catalog UI
+12. Workflow orchestration UI
+13. RCA run page
+14. Remote KB client interface
+15. Jira MCP integration
+16. Bug Intake Agent
+17. Service Resolver Agent
+18. KB Retriever Agent
+19. CloudWatch MCP integration
+20. GitHub/Git integration
+21. Evidence Collector Agent
+22. Log Analyzer Agent
+23. Code Analyzer Agent
+24. RCA Writer Agent
+25. Reviewer Agent
+26. Manual Jira posting approval
+27. VS Code extension wrapper
 
 ## Milestone 1
 
@@ -40,7 +41,7 @@ Local Service
   |
 Agent Deck Loader
   |
-Workflow Runner
+Local Orchestration Engine
   |
 Mock RCA Workflow
   |

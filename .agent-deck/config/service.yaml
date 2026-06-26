@@ -1,0 +1,11 @@
+service:
+  name: payment-api
+  owner: payments-platform
+  repository: org/payment-api
+  environments:
+    prod:
+      awsAccount: "123456789012"
+      regions:
+        - us-east-1
+      cloudWatchLogGroups:
+        - /aws/ecs/payment-api

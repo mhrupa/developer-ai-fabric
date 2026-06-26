@@ -13,6 +13,7 @@ The target outcome is to move from isolated AI coding assistance to evidence-bac
 The platform should provide:
 
 - local orchestration service
+- product-owned CrewAI-like orchestration engine without a CrewAI dependency
 - repo-local `.agent-deck`
 - local web UI
 - future VS Code extension
@@ -64,6 +65,10 @@ Read these before implementation:
 ### Local Service
 
 The local service loads the agent deck, exposes APIs, runs workflows, streams events, persists local run history, calls MCP integrations, queries the remote KB, and coordinates model usage.
+
+### Local Orchestration Engine
+
+The orchestration engine is the multi-agent workflow layer. It should be CrewAI-like in purpose but product-owned, deterministic by default, typed-state based, visible in the UI, and guarded by approval gates.
 
 ### Agent Deck Runtime
 

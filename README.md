@@ -6,6 +6,7 @@ The platform combines:
 
 - repo-local agent decks
 - a local orchestration service
+- a product-owned CrewAI-like orchestration engine, without a CrewAI dependency
 - a local web UI and future VS Code extension
 - MCP integrations for Jira, GitHub, AWS, wiki, and other tools
 - a remote shared knowledge base for team memory
@@ -40,6 +41,8 @@ Local Developer AI Fabric Service
         |
 Agent Deck Runtime
         |
+Local Orchestration Engine
+        |
 Agents + Workflows
         |
 MCP Servers + Remote KB API + LLM Gateway
@@ -52,6 +55,7 @@ Jira / AWS CloudWatch / GitHub / Wiki / Vector DB / Bedrock / Local LLM
 - load the agent deck from the current repository
 - display agents and workflows in a UI
 - orchestrate agent workflow execution
+- run deterministic multi-agent workflows through the local orchestration engine
 - read local repository files
 - run local commands, tests, and static analysis where allowed
 - call MCP servers for Jira, GitHub, AWS, and other systems
@@ -84,6 +88,40 @@ The first MVP should deliver:
 - optional manual posting to Jira
 
 Do not start with automatic production fixes, rollbacks, or unattended central orchestration.
+
+## Run The Local UI
+
+Build the frontend into the Spring Boot static resources:
+
+```bash
+npm run build:frontend
+```
+
+Start the backend:
+
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+Then open:
+
+```text
+http://localhost:8080
+```
+
+The Spring Boot backend serves the local UI and APIs from one process. The current implementation loads the sample `.agent-deck`, displays the agent catalog and RCA workflow, runs a mocked RCA workflow, stores local run history under `~/.developer-ai-fabric/runs`, and exposes the initial local APIs.
+
+Frontend source lives in `frontend/` and is split into modules under `frontend/src`. The built assets are generated into `backend/src/main/resources/static`.
+
+```bash
+npm run build
+
+cd backend
+mvn test
+
+npm test
+```
 
 ## Documentation
 

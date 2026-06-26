@@ -1,0 +1,15 @@
+id: log-analyzer
+name: Log Analyzer Agent
+description: Analyzes CloudWatch logs and metrics around the incident time window.
+version: 1.0.0
+modelPolicy:
+  defaultTask: log_analysis
+  allowLocal: true
+  allowCloud: true
+tools:
+  - aws-cloudwatch-mcp
+outputs:
+  - errorPatterns
+  - stackTraces
+  - metricFindings
+  - evidence

@@ -1,0 +1,25 @@
+id: rca-analysis
+name: RCA Analysis
+description: Produces an evidence-backed RCA report for a Jira customer bug.
+orchestration:
+  mode: deterministic-graph
+  strategy: sequential
+  allowAgentDelegation: false
+  requireApprovalForSideEffects: true
+steps:
+  - id: bug-intake
+    agent: bug-intake
+  - id: service-resolver
+    agent: service-resolver
+  - id: kb-retriever
+    agent: kb-retriever
+  - id: evidence-collector
+    agent: evidence-collector
+  - id: log-analyzer
+    agent: log-analyzer
+  - id: code-analyzer
+    agent: code-analyzer
+  - id: rca-writer
+    agent: rca-writer
+  - id: reviewer
+    agent: reviewer

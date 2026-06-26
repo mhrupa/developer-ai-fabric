@@ -9,7 +9,7 @@ Local Developer AI Fabric Service
         |
 Agent Deck Runtime
         |
-Workflow Runner
+Local Orchestration Engine
         |
 Agents
   - Bug Intake
@@ -60,7 +60,7 @@ Responsibilities:
 - expose REST and event streaming APIs
 - load `.agent-deck` from the current repository
 - list agents and workflows
-- execute workflows step by step
+- execute workflows through a deterministic local orchestration engine
 - persist local run state
 - call MCP servers
 - query the remote KB API
@@ -97,6 +97,28 @@ Primary screens:
 - settings
 
 The UI should call only the local service. It should not call Jira, AWS, GitHub, or the vector database directly.
+
+For the local MVP, Spring Boot should serve the browser UI from its static resources so developers start one local backend process.
+
+The source frontend is built from `frontend/` into `backend/src/main/resources/static`.
+
+## Local Orchestration Engine
+
+The orchestration engine is the CrewAI-like part of Developer AI Fabric, but it is implemented as a product-owned local graph runner rather than adopting CrewAI.
+
+The engine should provide:
+
+- workflow loading from `.agent-deck/workflows`
+- deterministic sequential execution for MVP
+- typed run state
+- step inputs and outputs
+- evidence ledger
+- event stream
+- retry and rerun hooks
+- approval gates
+- bounded reviewer loops later
+
+See `docs/architecture/ORCHESTRATION_ENGINE.md`.
 
 ## Agent Deck Layout
 

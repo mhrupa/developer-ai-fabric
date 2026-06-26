@@ -1,0 +1,14 @@
+id: kb-retriever
+name: KB Retriever Agent
+description: Searches the remote knowledge base for similar bugs, runbooks, and past RCA reports.
+version: 1.0.0
+modelPolicy:
+  defaultTask: semantic_retrieval
+  allowLocal: false
+  allowCloud: true
+tools:
+  - kb-api
+outputs:
+  - similarIncidents
+  - runbooks
+  - knownErrors

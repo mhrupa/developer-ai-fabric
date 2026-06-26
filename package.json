@@ -1,0 +1,16 @@
+{
+  "name": "developer-ai-fabric",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:frontend": "npm --prefix frontend run build",
+    "build": "npm run build:frontend && cd backend && mvn test",
+    "serve:prototype": "node service/server.mjs",
+    "serve": "cd backend && mvn spring-boot:run",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

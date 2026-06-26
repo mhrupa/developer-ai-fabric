@@ -15,7 +15,7 @@ The result should prove that a repository-local agent deck can be loaded, displa
 5. Add `/api/v1/runs`.
 6. Load agent metadata from `.agent-deck/agents`.
 7. Load workflow metadata from `.agent-deck/workflows`.
-8. Implement a simple workflow runner using mocked agent execution.
+8. Implement a simple local orchestration engine using mocked agent execution.
 9. Persist local run history under `~/.developer-ai-fabric/runs`.
 10. Add a basic local UI with:
     - dashboard
@@ -33,6 +33,8 @@ The result should prove that a repository-local agent deck can be loaded, displa
 - Keep external integrations behind service interfaces.
 - Keep model provider access behind an LLM gateway abstraction.
 - Use local mock agents for the first vertical slice.
+- Do not adopt CrewAI or another agent orchestration framework for the MVP.
+- Keep orchestration deterministic and visible through run steps/events.
 
 ## Sample Agent Metadata
 
@@ -56,6 +58,11 @@ outputs:
 id: rca-analysis
 name: RCA Analysis
 description: Produces an evidence-backed RCA report for a Jira bug
+orchestration:
+  mode: deterministic-graph
+  strategy: sequential
+  allowAgentDelegation: false
+  requireApprovalForSideEffects: true
 steps:
   - id: bug-intake
     agent: bug-intake

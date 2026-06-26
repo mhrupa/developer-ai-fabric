@@ -103,3 +103,15 @@ Reason:
 - unsupported claims are dangerous
 - reviewers need to see why the agent reached a conclusion
 - stored RCA reports become future KB inputs
+
+## ADR-011: Product-Owned Orchestration Engine
+
+Developer AI Fabric should use a CrewAI-like multi-agent orchestration model, but should not depend on CrewAI.
+
+Reason:
+
+- orchestration must be deterministic and auditable by default
+- the UI needs direct visibility into each step, event, evidence record, and approval gate
+- side-effect controls must be enforced by the runtime
+- typed state is safer than passing only free-form chat history between agents
+- avoiding framework lock-in keeps the local service and future central orchestrator aligned

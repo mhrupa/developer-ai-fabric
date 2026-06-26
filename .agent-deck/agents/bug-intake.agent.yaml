@@ -1,0 +1,15 @@
+id: bug-intake
+name: Bug Intake Agent
+description: Extracts structured RCA input from a Jira bug.
+version: 1.0.0
+modelPolicy:
+  defaultTask: jira_summary
+  allowLocal: true
+  allowCloud: true
+tools:
+  - jira-mcp
+outputs:
+  - issueSummary
+  - severity
+  - serviceHints
+  - timeWindow

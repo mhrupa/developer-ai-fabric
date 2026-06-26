@@ -1,0 +1,15 @@
+id: code-analyzer
+name: Code Analyzer Agent
+description: Inspects local repository code and recent Git history for likely root cause areas.
+version: 1.0.0
+modelPolicy:
+  defaultTask: code_analysis
+  allowLocal: true
+  allowCloud: true
+tools:
+  - repository-reader
+  - git
+outputs:
+  - impactedFiles
+  - recentChanges
+  - testSuggestions

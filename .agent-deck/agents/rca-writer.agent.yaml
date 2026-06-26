@@ -1,0 +1,16 @@
+id: rca-writer
+name: RCA Writer Agent
+description: Produces an evidence-backed RCA report with confidence, mitigation, and open questions.
+version: 1.0.0
+modelPolicy:
+  defaultTask: rca_reasoning
+  allowLocal: false
+  allowCloud: true
+tools:
+  - llm-gateway
+outputs:
+  - summary
+  - suspectedRootCause
+  - confidence
+  - mitigation
+  - openQuestions

@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Developer AI Fabric</title>
+    <script type="module" crossorigin src="/assets/index-TxlTEXS2.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BW8eru-l.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">DAF</span>
+          <div>
+            <strong>Developer AI Fabric</strong>
+            <span>Local orchestration</span>
+          </div>
+        </div>
+        <nav class="nav">
+          <button class="nav-link active" data-view-target="dashboard" type="button">Dashboard</button>
+          <button class="nav-link" data-view-target="agent-creation" type="button">Agents</button>
+          <button class="nav-link" data-view-target="skill-creation" type="button">Skills</button>
+          <button class="nav-link" data-view-target="kb-creation" type="button">Knowledge Base</button>
+          <button class="nav-link" data-view-target="workflow-creation" type="button">Workflows</button>
+          <button class="nav-link" data-view-target="workflow-execution" type="button">Execution</button>
+        </nav>
+        <div class="connection-card">
+          <span class="status-dot"></span>
+          <div>
+            <strong id="health-status">Checking</strong>
+            <span>Local service</span>
+          </div>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <h1>Agent Orchestration Console</h1>
+            <p>Run repo-local agent workflows with shared KB and MCP-ready context.</p>
+          </div>
+          <button id="refresh-button" class="icon-button" title="Refresh data">Refresh</button>
+        </header>
+
+        <section id="dashboard" class="section app-view active-view">
+          <div class="metric-grid">
+            <article class="metric">
+              <span>Agents</span>
+              <strong id="agent-count">0</strong>
+            </article>
+            <article class="metric">
+              <span>Workflows</span>
+              <strong id="workflow-count">0</strong>
+            </article>
+            <article class="metric">
+              <span>Recent Runs</span>
+              <strong id="run-count">0</strong>
+            </article>
+            <article class="metric">
+              <span>KB</span>
+              <strong>Mock</strong>
+            </article>
+          </div>
+
+          <div class="feature-grid">
+            <button class="feature-card" data-view-target="agent-creation" type="button">
+              <span class="feature-icon">AG</span>
+              <strong>Agent Creation</strong>
+              <span>Create and inspect repo-local agents, tools, model policy, and output contracts.</span>
+            </button>
+            <button class="feature-card" data-view-target="skill-creation" type="button">
+              <span class="feature-icon">SK</span>
+              <strong>Skill Creation</strong>
+              <span>Define reusable capabilities that agents can call across workflows.</span>
+            </button>
+            <button class="feature-card" data-view-target="kb-creation" type="button">
+              <span class="feature-icon">KB</span>
+              <strong>KB Creation</strong>
+              <span>Connect runbooks, wiki pages, RCA reports, and incident history.</span>
+            </button>
+            <button class="feature-card" data-view-target="workflow-creation" type="button">
+              <span class="feature-icon">WF</span>
+              <strong>Workflow Creation</strong>
+              <span>Arrange agents on a draggable Flowise-style canvas.</span>
+            </button>
+            <button class="feature-card" data-view-target="workflow-execution" type="button">
+              <span class="feature-icon">EX</span>
+              <strong>Workflow Execution</strong>
+              <span>Run RCA workflows and review evidence-backed outputs.</span>
+            </button>
+          </div>
+        </section>
+
+        <section id="agent-creation" class="section app-view">
+          <div class="panel-heading">
+            <h2>Agent Creation</h2>
+            <span>Loaded from .agent-deck/agents</span>
+          </div>
+          <div class="builder-layout">
+            <div class="panel">
+              <h3>New Agent</h3>
+              <form class="builder-form">
+                <label>
+                  Agent name
+                  <input value="Customer Bug Triage Agent" />
+                </label>
+                <label>
+                  Agent id
+                  <input value="customer-bug-triage" />
+                </label>
+                <label>
+                  Default model task
+                  <input value="jira_summary" />
+                </label>
+                <button type="button">Draft Agent</button>
+              </form>
+            </div>
+            <div>
+              <div class="panel-heading compact-heading">
+                <h2>Agent Catalog</h2>
+                <span>Current repo deck</span>
+              </div>
+              <div id="agent-grid" class="agent-grid"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="skill-creation" class="section app-view">
+          <div class="panel-heading">
+            <h2>Skill Creation</h2>
+            <span>Reusable capabilities for agents and workflows.</span>
+          </div>
+          <div class="placeholder-grid">
+            <article class="panel">
+              <h3>Skill Draft</h3>
+              <form class="builder-form">
+                <label>
+                  Skill name
+                  <input value="CloudWatch Error Pattern Search" />
+                </label>
+                <label>
+                  Tool binding
+                  <input value="aws-cloudwatch-mcp" />
+                </label>
+                <label>
+                  Output contract
+                  <input value="errorPatterns, evidence, openQuestions" />
+                </label>
+                <button type="button">Draft Skill</button>
+              </form>
+            </article>
+            <article class="panel">
+              <h3>Skill Registry</h3>
+              <div class="empty-state">
+                <strong>No local skills yet</strong>
+                <span>Next slice can persist skills under .agent-deck/skills.</span>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="kb-creation" class="section app-view">
+          <div class="panel-heading">
+            <h2>KB Creation</h2>
+            <span>Prepare remote KB sources and test retrieval.</span>
+          </div>
+          <div class="placeholder-grid">
+            <article class="panel">
+              <h3>Knowledge Source</h3>
+              <form class="builder-form">
+                <label>
+                  Source type
+                  <select>
+                    <option>Confluence / Wiki</option>
+                    <option>Jira project</option>
+                    <option>RCA report store</option>
+                    <option>Runbook repository</option>
+                  </select>
+                </label>
+                <label>
+                  Source URL
+                  <input placeholder="https://wiki.example.com/runbooks/payment-api" />
+                </label>
+                <button type="button">Draft Source</button>
+              </form>
+            </article>
+            <article class="panel">
+              <div class="panel-heading compact-heading">
+                <h3>KB Search</h3>
+                <span>Mock API contract</span>
+              </div>
+              <form id="kb-form" class="kb-form">
+                <input name="query" placeholder="Search incidents, runbooks, known errors" />
+                <button type="submit">Search</button>
+              </form>
+              <div id="kb-results" class="kb-results"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="workflow-creation" class="section app-view">
+          <div class="panel-heading">
+            <h2>Workflow Creation</h2>
+            <span>Flowise-style draggable graph backed by local workflow metadata.</span>
+            <button id="reset-layout-button" class="secondary-button" type="button">Reset Layout</button>
+          </div>
+          <div class="flow-shell">
+            <div id="workflow-map" class="flow-canvas"></div>
+            <aside id="node-inspector" class="node-inspector">
+              <h3>Select a node</h3>
+              <p class="small">Inspect agent tools, outputs, and routing policy.</p>
+            </aside>
+          </div>
+        </section>
+
+        <section id="workflow-execution" class="section app-view">
+          <div class="split">
+            <div class="panel">
+            <div class="panel-heading">
+              <h2>Run RCA Workflow</h2>
+              <span>Manual approval remains required for publishing.</span>
+            </div>
+            <form id="run-form" class="run-form">
+              <label>
+                Jira issue
+                <input name="jiraIssueKey" value="BUG-1234" required />
+              </label>
+              <label>
+                Service
+                <input name="service" value="payment-api" required />
+              </label>
+              <label>
+                Environment
+                <select name="environment">
+                  <option value="prod">prod</option>
+                  <option value="staging">staging</option>
+                  <option value="dev">dev</option>
+                </select>
+              </label>
+              <label>
+                Time window
+                <input name="timeWindowHours" type="number" min="1" max="72" value="4" />
+              </label>
+              <button type="submit">Run RCA</button>
+            </form>
+            </div>
+
+            <div class="panel">
+            <div class="panel-heading">
+              <h2>Recent Runs</h2>
+              <span>Stored under ~/.developer-ai-fabric/runs</span>
+            </div>
+            <div id="runs-list" class="runs-list"></div>
+            </div>
+          </div>
+
+          <div id="run-detail" class="run-detail hidden">
+          <div class="panel-heading">
+            <h2>Run Detail</h2>
+            <span id="selected-run-id"></span>
+          </div>
+          <div class="detail-grid">
+            <div class="panel">
+              <h3>Timeline</h3>
+              <div id="timeline" class="timeline"></div>
+            </div>
+            <div class="panel">
+              <h3>Final RCA</h3>
+              <div id="rca-output" class="rca-output"></div>
+            </div>
+          </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

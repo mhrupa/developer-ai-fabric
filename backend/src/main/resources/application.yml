@@ -1,0 +1,6 @@
+server:
+  port: 8080
+
+developer-ai-fabric:
+  workspace-root: ${DAF_WORKSPACE_ROOT:${user.dir}/..}
+  run-store-dir: ${DAF_RUN_STORE_DIR:${user.home}/.developer-ai-fabric/runs}

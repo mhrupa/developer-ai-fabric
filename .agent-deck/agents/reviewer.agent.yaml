@@ -1,0 +1,14 @@
+id: reviewer
+name: Reviewer Agent
+description: Checks whether the RCA is supported by evidence and flags weak assumptions.
+version: 1.0.0
+modelPolicy:
+  defaultTask: rca_review
+  allowLocal: true
+  allowCloud: true
+tools:
+  - llm-gateway
+outputs:
+  - readiness
+  - weakAssumptions
+  - reviewerNotes

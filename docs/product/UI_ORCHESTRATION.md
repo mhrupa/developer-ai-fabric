@@ -4,6 +4,8 @@
 
 The local UI is the developer-facing control plane for Developer AI Fabric.
 
+The preferred interaction model is a Flowise-style visual workflow canvas, adapted for engineering RCA workflows. The UI should be inspired by Flowise graph editing and inspection patterns, but Developer AI Fabric should keep its own local orchestration runtime and API contract.
+
 It should let developers:
 
 - view all agents available in the current repository
@@ -21,11 +23,22 @@ The UI should be structured and workflow-driven. Chat can be added as a supporti
 
 ### Local Web UI
 
-The first UI surface should be a browser application served by the local service.
+The first UI surface should be a browser application served by the Spring Boot local service.
 
 ```text
 http://localhost:<port>
 ```
+
+The UI source lives under `frontend/`. Building the frontend writes production assets to `backend/src/main/resources/static` so Spring Boot can serve the app and APIs from one process.
+
+Frontend code should stay modular:
+
+- `api` for backend calls
+- `canvas` for draggable workflow graph behavior
+- `renderers` for view rendering
+- `state` for shared client state
+- `dom` for element bindings
+- `utils` for small shared helpers
 
 ### VS Code Webview
 
@@ -43,6 +56,7 @@ Shows:
 - recent local runs
 - remote KB connection status
 - configured MCP integrations
+- feature cards for agent creation, skill creation, KB creation, workflow creation, and workflow execution
 
 Primary actions:
 
@@ -50,6 +64,17 @@ Primary actions:
 - open agent catalog
 - search KB
 - open settings
+- open a feature workspace from dashboard cards
+
+The dashboard should be the first screen. Feature areas should open as focused workspaces instead of placing every capability on one long page.
+
+Dashboard feature cards:
+
+- Agent Creation
+- Skill Creation
+- KB Creation
+- Workflow Creation
+- Workflow Execution
 
 ### Agent Catalog
 
@@ -74,7 +99,7 @@ Actions:
 
 ### Workflow Orchestration
 
-Shows workflow steps as an ordered execution graph.
+Shows workflow steps as a connected node graph.
 
 Example:
 
@@ -104,6 +129,18 @@ Actions:
 - skip optional step
 - inspect step input
 - inspect step output
+
+Canvas expectations:
+
+- nodes represent agents, tools, approval gates, and future subflows
+- edges represent deterministic execution dependencies
+- nodes can be dragged and repositioned on the canvas
+- canvas positions should persist locally per workflow
+- moving a node should redraw connected edges immediately
+- selecting a node opens an inspector
+- the inspector shows tools, model policy, inputs, outputs, and prior run outputs
+- run status should be rendered directly on nodes
+- the first editing capability is layout editing; workflow structure editing can come later
 
 ### RCA Run Page
 
@@ -217,6 +254,7 @@ POST /api/v1/kb/search
 ## Design Rules
 
 - prioritize workflow status and evidence over chat
+- prefer a Flowise-style node canvas for orchestration visibility
 - show what each agent did and why
 - make intermediate outputs inspectable
 - keep approval actions explicit
