@@ -110,7 +110,7 @@ Then open:
 http://localhost:8080
 ```
 
-The Spring Boot backend serves the local UI and APIs from one process. The current implementation loads the sample `.agent-deck`, displays the agent catalog and RCA workflow, runs a mocked RCA workflow, stores local run history under `~/.developer-ai-fabric/runs`, and exposes the initial local APIs.
+The Spring Boot backend serves the local UI and APIs from one process. The current implementation loads the sample `.agent-deck`, displays the agent catalog and RCA workflow, creates agents, skills, KB sources, and workflows from the dashboard, runs a mocked RCA workflow, stores local run history under `~/.developer-ai-fabric/runs`, and exposes the initial local APIs.
 
 Frontend source lives in `frontend/` and is split into modules under `frontend/src`. The built assets are generated into `backend/src/main/resources/static`.
 

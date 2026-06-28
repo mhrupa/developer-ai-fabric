@@ -1,0 +1,13 @@
+---
+id: "customer-bug-rca"
+name: "Customer Bug RCA"
+description: "Customer Bug RCA created from the local dashboard."
+orchestration:
+  mode: "deterministic-graph"
+  strategy: "sequential"
+  allowAgentDelegation: false
+  requireApprovalForSideEffects: true
+steps:
+- id: "bug-intake-3"
+  agent: "bug-intake"
+  dependsOn: []

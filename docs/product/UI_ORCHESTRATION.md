@@ -140,7 +140,8 @@ Canvas expectations:
 - selecting a node opens an inspector
 - the inspector shows tools, model policy, inputs, outputs, and prior run outputs
 - run status should be rendered directly on nodes
-- the first editing capability is layout editing; workflow structure editing can come later
+- the first structure editing capability supports adding, removing, and reordering agent steps
+- workflow save must preserve `requireApprovalForSideEffects: true`
 
 ### RCA Run Page
 
@@ -241,7 +242,14 @@ The UI should call only the local service.
 
 ```http
 GET /api/v1/agents
+POST /api/v1/agents
+GET /api/v1/skills
+POST /api/v1/skills
 GET /api/v1/workflows
+POST /api/v1/workflows
+PUT /api/v1/workflows/{workflowId}
+GET /api/v1/kb/sources
+POST /api/v1/kb/sources
 POST /api/v1/runs
 GET /api/v1/runs/{runId}
 GET /api/v1/runs/{runId}/events
@@ -250,6 +258,14 @@ POST /api/v1/runs/{runId}/approve
 POST /api/v1/runs/{runId}/post-to-jira
 POST /api/v1/kb/search
 ```
+
+Current local guardrails:
+
+- workflows must contain at least one step
+- every workflow step must reference a known local agent
+- duplicate step ids are rejected
+- side-effect approval cannot be disabled by a saved workflow
+- run output starts with approval pending and requires explicit approval before publish actions
 
 ## Design Rules
 

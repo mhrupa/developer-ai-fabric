@@ -52,13 +52,15 @@ Local Run History
 
 - local service project
 - `/api/v1/health`
-- `/api/v1/agents`
-- `/api/v1/workflows`
+- `/api/v1/agents` with create support
+- `/api/v1/skills` with create support
+- `/api/v1/workflows` with create and update support
+- `/api/v1/kb/sources` with create support
 - `/api/v1/runs`
 - local `.agent-deck` sample
 - workflow runner with mocked agent execution
 - local JSON run history
-- basic local UI showing agents, workflows, and run status
+- dashboard UI for agents, skills, KB sources, workflows, and run status
 
 ## First Demo Flow
 

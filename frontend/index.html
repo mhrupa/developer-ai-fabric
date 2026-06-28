@@ -41,6 +41,7 @@
           </div>
           <button id="refresh-button" class="icon-button" title="Refresh data">Refresh</button>
         </header>
+        <div id="app-message" class="app-message hidden" role="status"></div>
 
         <section id="dashboard" class="section app-view active-view">
           <div class="metric-grid">
@@ -99,20 +100,28 @@
           <div class="builder-layout">
             <div class="panel">
               <h3>New Agent</h3>
-              <form class="builder-form">
+              <form id="agent-form" class="builder-form">
                 <label>
                   Agent name
-                  <input value="Customer Bug Triage Agent" />
+                  <input name="name" value="Customer Bug Triage Agent" required />
                 </label>
                 <label>
                   Agent id
-                  <input value="customer-bug-triage" />
+                  <input name="id" value="customer-bug-triage" required />
                 </label>
                 <label>
                   Default model task
-                  <input value="jira_summary" />
+                  <input name="defaultTask" value="jira_summary" />
                 </label>
-                <button type="button">Draft Agent</button>
+                <label>
+                  Tools
+                  <input name="tools" value="jira-mcp,kb-api" />
+                </label>
+                <label>
+                  Outputs
+                  <input name="outputs" value="issueSummary,severity,serviceHints" />
+                </label>
+                <button type="submit">Save Agent</button>
               </form>
             </div>
             <div>
@@ -133,28 +142,29 @@
           <div class="placeholder-grid">
             <article class="panel">
               <h3>Skill Draft</h3>
-              <form class="builder-form">
+              <form id="skill-form" class="builder-form">
                 <label>
                   Skill name
-                  <input value="CloudWatch Error Pattern Search" />
+                  <input name="name" value="CloudWatch Error Pattern Search" required />
+                </label>
+                <label>
+                  Skill id
+                  <input name="id" value="cloudwatch-error-pattern-search" required />
                 </label>
                 <label>
                   Tool binding
-                  <input value="aws-cloudwatch-mcp" />
+                  <input name="toolBinding" value="aws-cloudwatch-mcp" />
                 </label>
                 <label>
                   Output contract
-                  <input value="errorPatterns, evidence, openQuestions" />
+                  <input name="outputs" value="errorPatterns,evidence,openQuestions" />
                 </label>
-                <button type="button">Draft Skill</button>
+                <button type="submit">Save Skill</button>
               </form>
             </article>
             <article class="panel">
               <h3>Skill Registry</h3>
-              <div class="empty-state">
-                <strong>No local skills yet</strong>
-                <span>Next slice can persist skills under .agent-deck/skills.</span>
-              </div>
+              <div id="skill-list" class="registry-list"></div>
             </article>
           </div>
         </section>
@@ -167,21 +177,29 @@
           <div class="placeholder-grid">
             <article class="panel">
               <h3>Knowledge Source</h3>
-              <form class="builder-form">
+              <form id="kb-source-form" class="builder-form">
+                <label>
+                  Source name
+                  <input name="name" value="Payment API Runbook" required />
+                </label>
+                <label>
+                  Source id
+                  <input name="id" value="payment-api-runbook" required />
+                </label>
                 <label>
                   Source type
-                  <select>
-                    <option>Confluence / Wiki</option>
-                    <option>Jira project</option>
-                    <option>RCA report store</option>
-                    <option>Runbook repository</option>
+                  <select name="type">
+                    <option value="wiki">Confluence / Wiki</option>
+                    <option value="jira">Jira project</option>
+                    <option value="rca-store">RCA report store</option>
+                    <option value="runbook-repo">Runbook repository</option>
                   </select>
                 </label>
                 <label>
                   Source URL
-                  <input placeholder="https://wiki.example.com/runbooks/payment-api" />
+                  <input name="url" placeholder="https://wiki.example.com/runbooks/payment-api" required />
                 </label>
-                <button type="button">Draft Source</button>
+                <button type="submit">Save Source</button>
               </form>
             </article>
             <article class="panel">
@@ -194,22 +212,91 @@
                 <button type="submit">Search</button>
               </form>
               <div id="kb-results" class="kb-results"></div>
+              <div id="kb-source-list" class="registry-list"></div>
             </article>
           </div>
         </section>
 
         <section id="workflow-creation" class="section app-view">
-          <div class="panel-heading">
-            <h2>Workflow Creation</h2>
-            <span>Flowise-style draggable graph backed by local workflow metadata.</span>
-            <button id="reset-layout-button" class="secondary-button" type="button">Reset Layout</button>
-          </div>
-          <div class="flow-shell">
-            <div id="workflow-map" class="flow-canvas"></div>
-            <aside id="node-inspector" class="node-inspector">
-              <h3>Select a node</h3>
-              <p class="small">Inspect agent tools, outputs, and routing policy.</p>
-            </aside>
+          <div class="agentic-builder">
+            <div class="agentic-topbar">
+              <div class="agentic-title">
+                <button class="agentic-icon-button muted" type="button" title="Back">‹</button>
+                <div>
+                  <strong><span>*</span> Agentic Workflow</strong>
+                  <em>Flowise-style workflow creation backed by local deck YAML</em>
+                </div>
+                <button class="agentic-icon-button muted" type="button" title="Edit workflow name">✎</button>
+              </div>
+              <div class="agentic-actions">
+                <button class="agentic-icon-button code" type="button" title="View workflow JSON">&lt;/&gt;</button>
+                <button id="reset-layout-button" class="agentic-icon-button save" type="button" title="Reset layout">↺</button>
+                <button class="agentic-icon-button muted" type="submit" form="workflow-form" title="Save workflow">▣</button>
+              </div>
+            </div>
+
+            <div class="agentic-stage">
+              <div class="agentic-canvas-wrap">
+                <div class="agentic-floating-tools left">
+                  <button id="add-workflow-step-button" class="round-tool primary" type="button" title="Add selected agent">+</button>
+                  <button class="round-tool coral" type="submit" form="workflow-form" title="Save workflow">✣</button>
+                </div>
+                <div class="agentic-floating-tools right">
+                  <button class="round-tool primary" type="button" title="Fit view">⛶</button>
+                  <button class="round-tool danger" type="button" title="Clear selection">⌫</button>
+                  <button class="round-tool purple" type="button" title="Close panel">×</button>
+                </div>
+                <div id="workflow-map" class="flow-canvas"></div>
+                <div class="canvas-zoom-controls">
+                  <button type="button">+</button>
+                  <button type="button">−</button>
+                  <button type="button">⌖</button>
+                  <button type="button">▣</button>
+                </div>
+              </div>
+
+              <aside class="agentic-side-panel">
+                <div class="assistant-message bot">
+                  <span class="assistant-avatar">⟠</span>
+                  <strong>Drag agents onto the canvas. Hover a card and drag from its right port to another card.</strong>
+                </div>
+                <div class="agent-palette-card">
+                  <div class="process-card-title static-title">
+                    <span class="status-check">+</span>
+                    <strong>Available Agents</strong>
+                    <span>drag</span>
+                  </div>
+                  <div id="workflow-agent-list" class="agent-palette-list"></div>
+                </div>
+                <div class="process-card">
+                  <button class="process-card-title" type="button">
+                    <span class="status-check">✓</span>
+                    <strong>Orchestrator Graph</strong>
+                    <span>⌃</span>
+                  </button>
+                  <div id="workflow-step-list" class="workflow-step-list"></div>
+                </div>
+                <div id="node-inspector" class="node-inspector">
+                  <h3>Select a node</h3>
+                  <p class="small">Inspect agent tools, outputs, model policy, and guardrails.</p>
+                </div>
+                <form id="workflow-form" class="agentic-compose">
+                  <label>
+                    Workflow name
+                    <input name="name" value="Customer Bug RCA" required />
+                  </label>
+                  <label>
+                    Workflow id
+                    <input name="id" value="customer-bug-rca" required />
+                  </label>
+                  <label>
+                    Add agent step
+                    <select id="workflow-agent-select" name="agent"></select>
+                  </label>
+                  <button type="submit">Save Workflow</button>
+                </form>
+              </aside>
+            </div>
           </div>
         </section>
 
@@ -259,6 +346,7 @@
             <h2>Run Detail</h2>
             <span id="selected-run-id"></span>
           </div>
+          <div id="run-actions" class="run-actions"></div>
           <div class="detail-grid">
             <div class="panel">
               <h3>Timeline</h3>

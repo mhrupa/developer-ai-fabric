@@ -1,0 +1,9 @@
+---
+id: "cloudwatch-error-pattern-search"
+name: "CloudWatch Error Pattern Search"
+description: "Finds repeated error patterns in CloudWatch logs."
+toolBinding: "aws-cloudwatch-mcp"
+outputs:
+- "errorPatterns"
+- "evidence"
+- "openQuestions"

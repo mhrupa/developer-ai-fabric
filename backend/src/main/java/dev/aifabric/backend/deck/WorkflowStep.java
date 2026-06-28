@@ -1,4 +1,6 @@
 package dev.aifabric.backend.deck;
 
-public record WorkflowStep(String id, String agent) {
+import java.util.List;
+
+public record WorkflowStep(String id, String agent, List<String> dependsOn) {
 }

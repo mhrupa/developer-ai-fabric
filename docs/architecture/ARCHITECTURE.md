@@ -73,7 +73,14 @@ Suggested local APIs:
 ```http
 GET /api/v1/health
 GET /api/v1/agents
+POST /api/v1/agents
+GET /api/v1/skills
+POST /api/v1/skills
 GET /api/v1/workflows
+POST /api/v1/workflows
+PUT /api/v1/workflows/{workflowId}
+GET /api/v1/kb/sources
+POST /api/v1/kb/sources
 POST /api/v1/runs
 GET /api/v1/runs/{runId}
 GET /api/v1/runs/{runId}/events
