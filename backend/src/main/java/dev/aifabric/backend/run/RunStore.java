@@ -133,6 +133,7 @@ public class RunStore {
         step.put("status", execution.status());
         step.put("startedAt", execution.startedAt());
         step.put("completedAt", execution.completedAt());
+        step.put("contract", execution.contract());
         step.put("output", execution.output());
         return step;
     }

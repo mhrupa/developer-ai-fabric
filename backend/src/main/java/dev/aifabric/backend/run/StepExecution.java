@@ -9,6 +9,7 @@ public record StepExecution(
         String status,
         String startedAt,
         String completedAt,
+        Map<String, Object> contract,
         Map<String, Object> output
 ) {
 }

@@ -10,8 +10,12 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 
@@ -187,6 +191,45 @@ public class DeckService {
                     throw new IllegalArgumentException("Workflow step cannot depend on itself: " + step.id());
                 }
             }
+        }
+        validateAcyclic(workflow.steps());
+    }
+
+    private void validateAcyclic(List<WorkflowStep> steps) {
+        Map<String, Integer> indegree = new HashMap<>();
+        Map<String, List<String>> childrenByDependency = new HashMap<>();
+        for (WorkflowStep step : steps) {
+            indegree.put(step.id(), 0);
+        }
+        for (WorkflowStep step : steps) {
+            for (String dependency : step.dependsOn() == null ? List.<String>of() : step.dependsOn()) {
+                indegree.put(step.id(), indegree.get(step.id()) + 1);
+                childrenByDependency.computeIfAbsent(dependency, ignored -> new ArrayList<>()).add(step.id());
+            }
+        }
+
+        Queue<String> ready = new ArrayDeque<>();
+        indegree.forEach((stepId, count) -> {
+            if (count == 0) {
+                ready.add(stepId);
+            }
+        });
+
+        int visited = 0;
+        while (!ready.isEmpty()) {
+            String stepId = ready.remove();
+            visited += 1;
+            for (String child : childrenByDependency.getOrDefault(stepId, List.of())) {
+                int nextCount = indegree.get(child) - 1;
+                indegree.put(child, nextCount);
+                if (nextCount == 0) {
+                    ready.add(child);
+                }
+            }
+        }
+
+        if (visited != steps.size()) {
+            throw new IllegalArgumentException("Workflow dependency graph contains a cycle");
         }
     }
 

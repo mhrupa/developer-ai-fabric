@@ -55,6 +55,7 @@ public class RunState {
         entry.put("status", step.status());
         entry.put("startedAt", step.startedAt());
         entry.put("completedAt", step.completedAt());
+        entry.put("contract", step.contract());
         entry.put("output", step.output());
         steps.add(entry);
     }

@@ -80,7 +80,10 @@ async function startRun(event) {
   event.preventDefault();
   await withUiError(async () => {
     const formData = new FormData(elements.runForm);
-    const workflow = state.workflows[0]?.id || 'rca-analysis';
+    const workflow = formData.get('workflow') || state.workflows[0]?.id || 'rca-analysis';
+    if (!workflow) {
+      throw new Error('Create and save a workflow before running.');
+    }
     const run = await createRun({
       workflow,
       input: {
@@ -142,6 +145,7 @@ async function saveSkillForm(event) {
 async function saveWorkflowForm(event) {
   event.preventDefault();
   await withUiError(async () => {
+    validateWorkflowDraft();
     const formData = new FormData(elements.workflowForm);
     await saveWorkflow({
       id: formData.get('id'),
@@ -184,6 +188,7 @@ async function saveKbSourceForm(event) {
 async function selectRun(runId) {
   const run = await fetchRun(runId);
   state.selectedRun = run;
+  renderCurrentApp();
   showCurrentRun();
 }
 
@@ -422,6 +427,51 @@ function toggleWorkflowConnection(sourceStepId, targetStepId) {
     elements,
     `${removed ? 'Removed connection' : 'Connected'} ${sourceStepId} ${removed ? 'from' : 'to'} ${targetStepId}.`,
   );
+}
+
+function validateWorkflowDraft() {
+  if (state.workflowDraftSteps.length === 0) {
+    throw new Error('Workflow must include at least one step.');
+  }
+  const stepIds = new Set(state.workflowDraftSteps.map((step) => step.id));
+  for (const step of state.workflowDraftSteps) {
+    for (const dependency of step.dependsOn || []) {
+      if (dependency !== '__start' && !stepIds.has(dependency)) {
+        throw new Error(`Unknown dependency: ${dependency}`);
+      }
+      if (dependency === step.id) {
+        throw new Error(`Step cannot depend on itself: ${step.id}`);
+      }
+    }
+  }
+  if (hasCycle(state.workflowDraftSteps)) {
+    throw new Error('Workflow dependency graph contains a cycle.');
+  }
+}
+
+function hasCycle(steps) {
+  const stepIds = new Set(steps.map((step) => step.id));
+  const indegree = new Map(steps.map((step) => [step.id, 0]));
+  const childrenByDependency = new Map();
+  for (const step of steps) {
+    for (const dependency of step.dependsOn || []) {
+      if (dependency === '__start' || !stepIds.has(dependency)) continue;
+      indegree.set(step.id, indegree.get(step.id) + 1);
+      childrenByDependency.set(dependency, [...(childrenByDependency.get(dependency) || []), step.id]);
+    }
+  }
+  const ready = [...indegree.entries()].filter(([, count]) => count === 0).map(([stepId]) => stepId);
+  let visited = 0;
+  while (ready.length > 0) {
+    const stepId = ready.shift();
+    visited += 1;
+    for (const child of childrenByDependency.get(stepId) || []) {
+      const nextCount = indegree.get(child) - 1;
+      indegree.set(child, nextCount);
+      if (nextCount === 0) ready.push(child);
+    }
+  }
+  return visited !== steps.length;
 }
 
 function csvList(value) {

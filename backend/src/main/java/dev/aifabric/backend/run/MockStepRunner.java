@@ -2,6 +2,15 @@ package dev.aifabric.backend.run;
 
 import dev.aifabric.backend.deck.AgentDefinition;
 import dev.aifabric.backend.deck.WorkflowStep;
+import dev.aifabric.backend.integrations.cloudwatch.CloudWatchFinding;
+import dev.aifabric.backend.integrations.cloudwatch.CloudWatchLogClient;
+import dev.aifabric.backend.integrations.jira.JiraIssue;
+import dev.aifabric.backend.integrations.jira.JiraIssueClient;
+import dev.aifabric.backend.integrations.kb.KbSearchResponse;
+import dev.aifabric.backend.integrations.kb.KbSearchResult;
+import dev.aifabric.backend.integrations.kb.KnowledgeBaseClient;
+import dev.aifabric.backend.integrations.repository.RepositoryContext;
+import dev.aifabric.backend.integrations.repository.RepositoryContextClient;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +20,23 @@ import org.springframework.stereotype.Component;
 @Component
 public class MockStepRunner implements StepRunner {
 
+    private final JiraIssueClient jiraIssueClient;
+    private final CloudWatchLogClient cloudWatchLogClient;
+    private final KnowledgeBaseClient knowledgeBaseClient;
+    private final RepositoryContextClient repositoryContextClient;
+
+    public MockStepRunner(
+            JiraIssueClient jiraIssueClient,
+            CloudWatchLogClient cloudWatchLogClient,
+            KnowledgeBaseClient knowledgeBaseClient,
+            RepositoryContextClient repositoryContextClient
+    ) {
+        this.jiraIssueClient = jiraIssueClient;
+        this.cloudWatchLogClient = cloudWatchLogClient;
+        this.knowledgeBaseClient = knowledgeBaseClient;
+        this.repositoryContextClient = repositoryContextClient;
+    }
+
     @Override
     public Map<String, Object> execute(WorkflowStep step, AgentDefinition agent, Map<String, Object> input) {
         String service = stringValue(input.getOrDefault("service", "unknown-service"));
@@ -18,12 +44,7 @@ public class MockStepRunner implements StepRunner {
         String environment = stringValue(input.getOrDefault("environment", "unknown"));
 
         return switch (step.agent()) {
-            case "bug-intake" -> mapOf(
-                    "summary", issueKey + " normalized for RCA analysis.",
-                    "severity", "unknown",
-                    "serviceHints", List.of(service),
-                    "timeWindowHours", input.getOrDefault("timeWindowHours", 4)
-            );
+            case "bug-intake" -> bugIntake(issueKey, input);
             case "service-resolver" -> mapOf(
                     "service", service,
                     "environment", environment,
@@ -31,31 +52,13 @@ public class MockStepRunner implements StepRunner {
                     "owners", List.of("service-owner-team"),
                     "logGroups", List.of("/aws/ecs/" + service)
             );
-            case "kb-retriever" -> mapOf(
-                    "similarIncidents", List.of(mapOf(
-                            "id", "RCA-1024",
-                            "title", "Prior " + service + " customer-impacting timeout",
-                            "confidence", "medium"
-                    )),
-                    "runbooks", List.of(service + " production triage runbook")
-            );
+            case "kb-retriever" -> kbRetrieval(input);
             case "evidence-collector" -> mapOf("evidence", List.of(
                     mapOf("source", "jira", "summary", "Collected Jira context for " + issueKey + ".", "confidence", "medium"),
                     mapOf("source", "github", "summary", "Mock recent deployment context for " + service + ".", "confidence", "low")
             ));
-            case "log-analyzer" -> mapOf(
-                    "errorPatterns", List.of("5xx spike placeholder", "timeout placeholder"),
-                    "evidence", List.of(mapOf(
-                            "source", "cloudwatch",
-                            "summary", "Mock CloudWatch scan for /aws/ecs/" + service + " in " + environment + ".",
-                            "confidence", "low"
-                    ))
-            );
-            case "code-analyzer" -> mapOf(
-                    "impactedFiles", List.of("src/main", "config"),
-                    "recentChanges", List.of("Mock recent commit touching request handling."),
-                    "testSuggestions", List.of("Add regression coverage for timeout and dependency failure paths.")
-            );
+            case "log-analyzer" -> logAnalysis(input);
+            case "code-analyzer" -> codeAnalysis(input);
             case "rca-writer" -> mapOf(
                     "summary", "Mock RCA generated for " + issueKey + ".",
                     "suspectedRootCause", "Insufficient live integrations in this first slice; RCA is a placeholder.",
@@ -67,6 +70,76 @@ public class MockStepRunner implements StepRunner {
             );
             default -> mapOf("summary", (agent == null ? step.agent() : agent.name()) + " completed.");
         };
+    }
+
+    private Map<String, Object> codeAnalysis(Map<String, Object> input) {
+        RepositoryContext context = repositoryContextClient.inspect(input);
+        return mapOf(
+                "source", context.source(),
+                "repository", context.repository(),
+                "branch", context.branch(),
+                "recentChanges", context.recentChanges(),
+                "impactedFiles", context.impactedFiles(),
+                "testSuggestions", context.testSuggestions(),
+                "evidence", context.evidence(),
+                "openQuestions", context.openQuestions()
+        );
+    }
+
+    private Map<String, Object> kbRetrieval(Map<String, Object> input) {
+        String query = stringValue(input.getOrDefault("jiraIssueKey", "UNKNOWN")) + " "
+                + stringValue(input.getOrDefault("service", "unknown-service")) + " customer bug RCA";
+        KbSearchResponse response = knowledgeBaseClient.search(query, input);
+        return mapOf(
+                "source", response.source(),
+                "query", response.query(),
+                "similarIncidents", response.results().stream().map(MockStepRunner::kbResultMap).toList(),
+                "runbooks", response.runbooks(),
+                "knownErrors", response.knownErrors(),
+                "openQuestions", response.openQuestions()
+        );
+    }
+
+    private static Map<String, Object> kbResultMap(KbSearchResult result) {
+        return mapOf(
+                "id", result.id(),
+                "title", result.title(),
+                "source", result.source(),
+                "summary", result.summary(),
+                "type", result.type(),
+                "confidence", result.confidence(),
+                "metadata", result.metadata()
+        );
+    }
+
+    private Map<String, Object> logAnalysis(Map<String, Object> input) {
+        CloudWatchFinding finding = cloudWatchLogClient.searchLogs(input);
+        return mapOf(
+                "source", finding.source(),
+                "logGroup", finding.logGroup(),
+                "region", finding.region(),
+                "errorPatterns", finding.errorPatterns(),
+                "stackTraces", finding.stackTraces(),
+                "metricFindings", finding.metricFindings(),
+                "evidence", finding.evidence(),
+                "openQuestions", finding.openQuestions()
+        );
+    }
+
+    private Map<String, Object> bugIntake(String issueKey, Map<String, Object> input) {
+        JiraIssue issue = jiraIssueClient.fetchIssue(issueKey, input);
+        return mapOf(
+                "issueKey", issue.key(),
+                "summary", issue.summary(),
+                "description", issue.description(),
+                "severity", issue.severity(),
+                "status", issue.status(),
+                "labels", issue.labels(),
+                "components", issue.components(),
+                "serviceHints", issue.serviceHints(),
+                "timeWindowHours", input.getOrDefault("timeWindowHours", 4),
+                "source", issue.source()
+        );
     }
 
     private static String stringValue(Object value) {

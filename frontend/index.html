@@ -309,6 +309,10 @@
             </div>
             <form id="run-form" class="run-form">
               <label>
+                Workflow
+                <select id="run-workflow-select" name="workflow" required></select>
+              </label>
+              <label>
                 Jira issue
                 <input name="jiraIssueKey" value="BUG-1234" required />
               </label>
@@ -347,14 +351,25 @@
             <span id="selected-run-id"></span>
           </div>
           <div id="run-actions" class="run-actions"></div>
+          <div id="run-context" class="run-context"></div>
           <div class="detail-grid">
             <div class="panel">
-              <h3>Timeline</h3>
+              <h3>Step Execution</h3>
               <div id="timeline" class="timeline"></div>
             </div>
             <div class="panel">
               <h3>Final RCA</h3>
               <div id="rca-output" class="rca-output"></div>
+            </div>
+          </div>
+          <div class="detail-grid secondary-detail-grid">
+            <div class="panel">
+              <h3>Evidence</h3>
+              <div id="evidence-output" class="rca-output"></div>
+            </div>
+            <div class="panel">
+              <h3>Event Log</h3>
+              <div id="event-log" class="event-log"></div>
             </div>
           </div>
           </div>

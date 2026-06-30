@@ -4,10 +4,14 @@ import dev.aifabric.backend.deck.AgentDefinition;
 import dev.aifabric.backend.deck.WorkflowDefinition;
 import dev.aifabric.backend.deck.WorkflowStep;
 import java.time.Instant;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -34,7 +38,7 @@ public class WorkflowRunner {
                 "message", "Started " + workflow.name()
         ));
 
-        for (WorkflowStep step : workflow.steps()) {
+        for (WorkflowStep step : executionOrder(workflow.steps())) {
             runState.addEvent("step.started", Map.of("stepId", step.id(), "agent", step.agent()));
             StepExecution execution = runStep(step, agentById.get(step.agent()), input);
             runState.addStep(execution);
@@ -56,6 +60,50 @@ public class WorkflowRunner {
         return run;
     }
 
+    private List<WorkflowStep> executionOrder(List<WorkflowStep> steps) {
+        Map<String, WorkflowStep> stepById = steps.stream()
+                .collect(Collectors.toMap(WorkflowStep::id, Function.identity(), (left, right) -> left, LinkedHashMap::new));
+        Map<String, Integer> indegree = new LinkedHashMap<>();
+        Map<String, List<String>> childrenByDependency = new HashMap<>();
+        for (WorkflowStep step : steps) {
+            indegree.put(step.id(), 0);
+        }
+        for (WorkflowStep step : steps) {
+            for (String dependency : step.dependsOn() == null ? List.<String>of() : step.dependsOn()) {
+                if (!stepById.containsKey(dependency)) {
+                    continue;
+                }
+                indegree.put(step.id(), indegree.get(step.id()) + 1);
+                childrenByDependency.computeIfAbsent(dependency, ignored -> new ArrayList<>()).add(step.id());
+            }
+        }
+
+        Queue<String> ready = new ArrayDeque<>();
+        indegree.forEach((stepId, count) -> {
+            if (count == 0) {
+                ready.add(stepId);
+            }
+        });
+
+        List<WorkflowStep> ordered = new ArrayList<>();
+        while (!ready.isEmpty()) {
+            String stepId = ready.remove();
+            ordered.add(stepById.get(stepId));
+            for (String child : childrenByDependency.getOrDefault(stepId, List.of())) {
+                int nextCount = indegree.get(child) - 1;
+                indegree.put(child, nextCount);
+                if (nextCount == 0) {
+                    ready.add(child);
+                }
+            }
+        }
+
+        if (ordered.size() != steps.size()) {
+            throw new IllegalArgumentException("Workflow dependency graph contains a cycle");
+        }
+        return ordered;
+    }
+
     public StepExecution runStep(WorkflowStep step, AgentDefinition agent, Map<String, Object> input) {
         Instant startedAt = Instant.now();
         Map<String, Object> output = stepRunner.execute(step, agent, input);
@@ -66,7 +114,24 @@ public class WorkflowRunner {
                 "completed",
                 startedAt.toString(),
                 Instant.now().toString(),
+                executionContract(step, agent),
                 output
+        );
+    }
+
+    private Map<String, Object> executionContract(WorkflowStep step, AgentDefinition agent) {
+        return mapOf(
+                "stepId", step.id(),
+                "agentId", step.agent(),
+                "inputFields", List.of("jiraIssueKey", "service", "environment", "timeWindowHours"),
+                "dependsOn", step.dependsOn() == null ? List.of() : step.dependsOn(),
+                "tools", agent == null || agent.tools() == null ? List.of() : agent.tools(),
+                "outputs", agent == null || agent.outputs() == null ? List.of("summary") : agent.outputs(),
+                "modelPolicy", agent == null || agent.modelPolicy() == null ? Map.of() : agent.modelPolicy(),
+                "timeoutSeconds", 120,
+                "maxRetries", 1,
+                "sideEffects", false,
+                "approvalRequired", false
         );
     }
 
@@ -75,6 +140,16 @@ public class WorkflowRunner {
                 .map(step -> mapValue(step.get("output")).get("evidence"))
                 .flatMap(value -> evidenceFromValue(value).stream())
                 .toList();
+        List<Map<String, Object>> similarIncidents = mapListFromStepOutputs(steps, "similarIncidents");
+        List<Map<String, Object>> recentChanges = mapListFromStepOutputs(steps, "recentChanges");
+        List<Object> runbooks = listFromStepOutputs(steps, "runbooks");
+        List<Object> knownErrors = listFromStepOutputs(steps, "knownErrors");
+        List<Object> impactedFiles = listFromStepOutputs(steps, "impactedFiles");
+        List<Object> testSuggestions = listFromStepOutputs(steps, "testSuggestions");
+        List<Object> openQuestions = new ArrayList<>();
+        openQuestions.addAll(listFromStepOutputs(steps, "openQuestions"));
+        openQuestions.add("What is the real Jira payload?");
+        openQuestions.add("Which deployment or commit changed near the incident window?");
 
         return mapOf(
                 "issueKey", input.getOrDefault("jiraIssueKey", "UNKNOWN"),
@@ -84,21 +159,23 @@ public class WorkflowRunner {
                 "suspectedRootCause", "Real root cause is not determined yet because external MCP and KB integrations are mocked in this slice.",
                 "confidence", "low",
                 "evidence", evidence,
+                "similarIncidents", similarIncidents,
+                "runbooks", runbooks,
+                "knownErrors", knownErrors,
+                "recentChanges", recentChanges,
+                "impactedFiles", impactedFiles,
+                "testSuggestions", testSuggestions,
                 "mitigation", List.of(
-                        "Wire Jira MCP, remote KB, CloudWatch MCP, and GitHub context before using RCA output operationally.",
+                        "Wire Jira MCP, remote KB/vector store, CloudWatch MCP, and GitHub context before using RCA output operationally.",
                         "Keep Jira posting behind explicit approval."
                 ),
-                "openQuestions", List.of(
-                        "What is the real Jira payload?",
-                        "Which CloudWatch log groups should be searched?",
-                        "Which deployment or commit changed near the incident window?"
-                ),
+                "openQuestions", openQuestions.stream().distinct().toList(),
                 "checkedSources", mapOf(
                         "jira", false,
-                        "kb", false,
+                        "kb", !similarIncidents.isEmpty() || !runbooks.isEmpty() || !knownErrors.isEmpty(),
                         "cloudwatch", false,
                         "github", false,
-                        "localRepo", true
+                        "localRepo", !recentChanges.isEmpty() || !impactedFiles.isEmpty()
                 )
         );
     }
@@ -114,6 +191,38 @@ public class WorkflowRunner {
                     .filter(Map.class::isInstance)
                     .map(item -> (Map<String, Object>) item)
                     .toList();
+        }
+        return List.of();
+    }
+
+    private static List<Map<String, Object>> mapListFromStepOutputs(List<Map<String, Object>> steps, String field) {
+        return steps.stream()
+                .map(step -> mapValue(step.get("output")).get(field))
+                .flatMap(value -> evidenceFromStaticValue(value).stream())
+                .toList();
+    }
+
+    private static List<Object> listFromStepOutputs(List<Map<String, Object>> steps, String field) {
+        return steps.stream()
+                .map(step -> mapValue(step.get("output")).get(field))
+                .flatMap(value -> objectList(value).stream())
+                .toList();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> evidenceFromStaticValue(Object value) {
+        if (value instanceof List<?> list) {
+            return list.stream()
+                    .filter(Map.class::isInstance)
+                    .map(item -> (Map<String, Object>) item)
+                    .toList();
+        }
+        return List.of();
+    }
+
+    private static List<Object> objectList(Object value) {
+        if (value instanceof List<?> list) {
+            return new ArrayList<>(list);
         }
         return List.of();
     }

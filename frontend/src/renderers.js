@@ -18,6 +18,7 @@ export function renderApp({
   renderAgents(state, elements);
   renderWorkflowDraft(state, elements, onWorkflowStepMove, onWorkflowStepRemove, onWorkflowStepSelected);
   renderWorkflows(state, elements, onWorkflowStepSelected, onWorkflowConnectionCreate);
+  renderRunWorkflowOptions(state, elements);
   renderRuns(state, elements, onRunSelected);
 }
 
@@ -46,16 +47,67 @@ export function renderKbResults(elements, results) {
 }
 
 export function showRun(elements, run, actions = {}) {
+  if (!run) return;
   elements.runDetail.classList.remove('hidden');
   elements.selectedRunId.textContent = run.runId;
+
+  elements.runContext.innerHTML = `
+    <article class="run-context-card">
+      <span>Workflow</span>
+      <strong>${escapeHtml(run.workflowName || run.workflow || 'unknown')}</strong>
+    </article>
+    <article class="run-context-card">
+      <span>Status</span>
+      <strong>${escapeHtml(run.status || 'unknown')}</strong>
+    </article>
+    <article class="run-context-card">
+      <span>Issue</span>
+      <strong>${escapeHtml(run.input?.jiraIssueKey || run.result?.issueKey || 'unknown')}</strong>
+    </article>
+    <article class="run-context-card">
+      <span>Service</span>
+      <strong>${escapeHtml(run.input?.service || run.result?.service || 'unknown')}</strong>
+    </article>
+  `;
+
   elements.timeline.innerHTML = (run.steps || [])
     .map(
       (step) => `
-        <div class="timeline-item">
-          <strong>${escapeHtml(step.agentName || step.agent)}</strong>
-          <span class="small">${escapeHtml(step.status)} - ${escapeHtml(step.id)}</span>
-          <p>${escapeHtml(step.output?.summary || step.output?.readiness || 'Step completed.')}</p>
-          <button class="secondary-button compact-button" data-rerun-step="${escapeHtml(step.id)}" type="button">Rerun Step</button>
+        <div class="timeline-item step-card">
+          <div class="step-card-head">
+            <div>
+              <strong>${escapeHtml(step.agentName || step.agent)}</strong>
+              <span class="small">${escapeHtml(step.status)} - ${escapeHtml(step.id)}</span>
+            </div>
+            <button class="secondary-button compact-button" data-rerun-step="${escapeHtml(step.id)}" type="button">Rerun Step</button>
+          </div>
+          <p>${escapeHtml(step.output?.summary || step.output?.readiness || step.output?.suspectedRootCause || 'Step completed.')}</p>
+          <div class="contract-grid">
+            <div>
+              <span class="contract-label">Inputs</span>
+              <div class="tag-row">${renderTags(step.contract?.inputFields || [])}</div>
+            </div>
+            <div>
+              <span class="contract-label">Outputs</span>
+              <div class="tag-row">${renderTags(step.contract?.outputs || [])}</div>
+            </div>
+            <div>
+              <span class="contract-label">Tools</span>
+              <div class="tag-row">${renderTags(step.contract?.tools || [])}</div>
+            </div>
+            <div>
+              <span class="contract-label">Policy</span>
+              <div class="tag-row">
+                <span class="tag">timeout ${escapeHtml(step.contract?.timeoutSeconds || 0)}s</span>
+                <span class="tag">retries ${escapeHtml(step.contract?.maxRetries ?? 0)}</span>
+                <span class="tag">${step.contract?.sideEffects ? 'side effects' : 'read only'}</span>
+              </div>
+            </div>
+          </div>
+          <details class="json-details">
+            <summary>Output JSON</summary>
+            <pre>${escapeHtml(prettyJson(step.output || {}))}</pre>
+          </details>
         </div>
       `,
     )
@@ -96,10 +148,28 @@ export function showRun(elements, run, actions = {}) {
       ${(result.evidence || []).map((item) => `<p>${escapeHtml(item.source)}: ${escapeHtml(item.summary)}</p>`).join('') || '<p>No evidence recorded.</p>'}
     </div>
     <div class="rca-block">
+      <strong>Repository Context</strong>
+      ${renderRepositoryContext(result)}
+    </div>
+    <div class="rca-block">
       <strong>Open Questions</strong>
       ${(result.openQuestions || []).map((item) => `<p>${escapeHtml(item)}</p>`).join('') || '<p>None.</p>'}
     </div>
   `;
+  elements.evidenceOutput.innerHTML = renderEvidence(result.evidence || []);
+  elements.eventLog.innerHTML = (run.events || [])
+    .slice()
+    .reverse()
+    .map(
+      (event) => `
+        <article class="event-row">
+          <strong>${escapeHtml(event.type || 'event')}</strong>
+          <span>${escapeHtml(event.createdAt || '')}</span>
+          <code>${escapeHtml(event.stepId || event.agent || event.action || event.workflow || '')}</code>
+        </article>
+      `,
+    )
+    .join('');
   elements.runDetail.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -171,6 +241,17 @@ function renderKbSources(state, elements) {
       `,
     )
     .join('');
+}
+
+function renderRunWorkflowOptions(state, elements) {
+  if (!elements.runWorkflowSelect) return;
+  const currentValue = elements.runWorkflowSelect.value || state.workflows[0]?.id || '';
+  elements.runWorkflowSelect.innerHTML = state.workflows
+    .map((workflow) => `<option value="${escapeHtml(workflow.id)}">${escapeHtml(workflow.name || workflow.id)}</option>`)
+    .join('');
+  if (state.workflows.some((workflow) => workflow.id === currentValue)) {
+    elements.runWorkflowSelect.value = currentValue;
+  }
 }
 
 function renderWorkflowDraft(state, elements, onWorkflowStepMove, onWorkflowStepRemove, onWorkflowStepSelected) {
@@ -392,9 +473,9 @@ function renderRuns(state, elements, onRunSelected) {
   elements.runsList.innerHTML = state.runs
     .map(
       (run) => `
-        <button class="run-item" data-run-id="${escapeHtml(run.runId)}">
+        <button class="run-item${state.selectedRun?.runId === run.runId ? ' selected-run' : ''}" data-run-id="${escapeHtml(run.runId)}">
           <strong>${escapeHtml(run.issueKey || run.runId)}</strong>
-          <span class="run-meta">${escapeHtml(run.service || 'unknown service')} - ${escapeHtml(run.status)}</span>
+          <span class="run-meta">${escapeHtml(run.workflowId || 'workflow')} - ${escapeHtml(run.service || 'unknown service')} - ${escapeHtml(run.status)}</span>
         </button>
       `,
     )
@@ -403,4 +484,55 @@ function renderRuns(state, elements, onRunSelected) {
   for (const button of elements.runsList.querySelectorAll('[data-run-id]')) {
     button.addEventListener('click', () => onRunSelected(button.dataset.runId));
   }
+}
+
+function renderTags(values) {
+  if (!values?.length) return '<span class="tag">none</span>';
+  return values.map((value) => `<span class="tag">${escapeHtml(value)}</span>`).join('');
+}
+
+function renderEvidence(evidence) {
+  if (!evidence.length) {
+    return '<div class="rca-block"><p>No evidence recorded.</p></div>';
+  }
+  return evidence
+    .map(
+      (item) => `
+        <article class="rca-block">
+          <strong>${escapeHtml(item.source || 'evidence')}</strong>
+          <p>${escapeHtml(item.summary || '')}</p>
+          <span class="small">confidence ${escapeHtml(item.confidence || 'unknown')}</span>
+        </article>
+      `,
+    )
+    .join('');
+}
+
+function renderRepositoryContext(result) {
+  const impactedFiles = result.impactedFiles || [];
+  const recentChanges = result.recentChanges || [];
+  const testSuggestions = result.testSuggestions || [];
+  if (!impactedFiles.length && !recentChanges.length && !testSuggestions.length) {
+    return '<p>No repository context recorded.</p>';
+  }
+  return `
+    <div class="repo-context-grid">
+      <div>
+        <span class="contract-label">Impacted Files</span>
+        ${impactedFiles.map((item) => `<code class="path-chip">${escapeHtml(item)}</code>`).join('') || '<p>None.</p>'}
+      </div>
+      <div>
+        <span class="contract-label">Recent Changes</span>
+        ${recentChanges.map((item) => `<p><strong>${escapeHtml(item.hash || '')}</strong> ${escapeHtml(item.message || item)}</p>`).join('') || '<p>None.</p>'}
+      </div>
+      <div>
+        <span class="contract-label">Test Suggestions</span>
+        ${testSuggestions.map((item) => `<p>${escapeHtml(item)}</p>`).join('') || '<p>None.</p>'}
+      </div>
+    </div>
+  `;
+}
+
+function prettyJson(value) {
+  return JSON.stringify(value, null, 2);
 }
